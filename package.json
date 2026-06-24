@@ -2,7 +2,7 @@
   "name": "gravityportal",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://damaged-hero.github.io/gravityportal",
+  "homepage": "https://gravdevelopment.github.io/Gravity-Portal",
   "dependencies": {
     "@auth0/auth0-react": "^2.19.0",
     "@azure/msal-browser": "^5.14.0",
