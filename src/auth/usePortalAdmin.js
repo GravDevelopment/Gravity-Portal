@@ -48,12 +48,19 @@ function useAdminQuery(table, odata) {
       setError(null);
       try {
         const token = await getToken(instance, accounts);
-        const url   = `${DATAVERSE_URL}/${table}${odata ? `?${odata}` : ''}`;
-        const json  = await dvFetch(url, {
+        const headers = {
           ...baseHeaders(token),
-          Prefer: 'odata.include-annotations="OData.Community.Display.V1.FormattedValue"',
-        });
-        if (!cancelled) { setData(json?.value ?? []); setLoading(false); }
+          Prefer: 'odata.include-annotations="OData.Community.Display.V1.FormattedValue",odata.maxpagesize=5000',
+        };
+        let url = `${DATAVERSE_URL}/${table}${odata ? `?${odata}` : ''}`;
+        const all = [];
+        while (url) {
+          const json = await dvFetch(url, headers);
+          if (Array.isArray(json?.value)) all.push(...json.value);
+          else { if (!cancelled) { setData(json); setLoading(false); } return; }
+          url = json['@odata.nextLink'] ?? null;
+        }
+        if (!cancelled) { setData(all); setLoading(false); }
       } catch (err) {
         if (!cancelled) { setError(err.message); setLoading(false); }
       }
@@ -114,11 +121,33 @@ export function usePortalPermissions(companyId, userId) {
 }
 
 export function useTrainingCompanies() {
-  const { data, loading, error } = useAdminQuery(
+  const accountsQ = useAdminQuery(
     'accounts',
-    '$select=accountid,name&$filter=statecode eq 0&$orderby=name asc&$top=500',
+    '$select=accountid,name&$filter=statecode eq 0&$orderby=name asc',
   );
-  return { companies: data ?? [], loading, error };
+  const secondaryQ = useAdminQuery(
+    'tct_enrolls',
+    '$select=tct_secondarycompany&$filter=tct_secondarycompany ne null',
+  );
+
+  const seen = new Set();
+  const merged = [];
+  (accountsQ.data ?? []).forEach(a => {
+    const key = (a.name ?? '').trim().toLowerCase();
+    if (key && !seen.has(key)) { seen.add(key); merged.push({ accountid: a.accountid, name: a.name }); }
+  });
+  (secondaryQ.data ?? []).forEach(r => {
+    const name = (r.tct_secondarycompany ?? '').trim();
+    const key  = name.toLowerCase();
+    if (key && !seen.has(key)) { seen.add(key); merged.push({ accountid: `sec-${key}`, name }); }
+  });
+  merged.sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    companies: merged,
+    loading:   accountsQ.loading || secondaryQ.loading,
+    error:     accountsQ.error || secondaryQ.error,
+  };
 }
 
 // ── CRUD functions ────────────────────────────────────────────────────────────
@@ -166,7 +195,7 @@ export async function saveUser(instance, accounts, data) {
 
   // handle lookup binding
   if (companyId) {
-    body['crc41_portalcompany@odata.bind'] = `/crc41_portalcompanies(${companyId})`;
+    body['crc41_PortalCompany@odata.bind'] = `/crc41_portalcompanies(${companyId})`;
   }
 
   if (crc41_portaluserid) {
@@ -204,8 +233,8 @@ export async function savePermission(instance, accounts, data) {
   const token = await getToken(instance, accounts);
   const { crc41_portalpermissionid, companyId, userId, ...body } = data;
 
-  if (companyId) body['crc41_portalcompany@odata.bind'] = `/crc41_portalcompanies(${companyId})`;
-  if (userId)    body['crc41_portaluser@odata.bind']    = `/crc41_portalusers(${userId})`;
+  if (companyId) body['crc41_PortalCompany@odata.bind'] = `/crc41_portalcompanies(${companyId})`;
+  if (userId)    body['crc41_PortalUser@odata.bind']    = `/crc41_portalusers(${userId})`;
 
   if (crc41_portalpermissionid) {
     const res = await window.fetch(

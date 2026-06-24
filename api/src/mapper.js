@@ -1,4 +1,4 @@
-const STATUS_MAP = { 1: 'Completed', 2: 'Failed', 3: 'Pending', 4: 'Pending' };
+const STATUS_MAP = { 1: 'Competent', 2: 'NYC', 3: 'Pending', 4: 'Pending' };
 
 function toDateStr(val) {
   if (!val) return null;
@@ -9,17 +9,20 @@ function toDateStr(val) {
 }
 
 function mapStatus(raw, label) {
+  const check = s => {
+    const l = String(s).toLowerCase().trim();
+    if (['competent', 'pass', 'passed', 'c', 'te', 'ate', 'te-gravity'].includes(l)) return 'Competent';
+    if (['not yet competent', 'nyc', 'failed', 'fail', 'did not finish'].includes(l)) return 'NYC';
+    if (['completed', 'complete', 'done'].includes(l)) return 'Pending';
+    return null;
+  };
   if (label) {
-    const l = label.toLowerCase().trim();
-    if (['competent', 'completed', 'pass', 'passed'].includes(l)) return 'Completed';
-    if (['not yet competent', 'nyc', 'failed', 'fail', 'did not finish'].includes(l)) return 'Failed';
+    const m = check(label);
+    if (m) return m;
   }
   if (raw == null) return 'Pending';
   if (typeof raw === 'number') return STATUS_MAP[raw] ?? 'Pending';
-  const s = String(raw).toLowerCase().trim();
-  if (['competent', 'completed', 'pass', 'passed', 'c', 'te', 'ate', 'te-gravity'].includes(s)) return 'Completed';
-  if (['not yet competent', 'nyc', 'failed', 'fail', 'did not finish'].includes(s)) return 'Failed';
-  return 'Pending';
+  return check(raw) ?? 'Pending';
 }
 
 function mapEnrollment(raw, index, bookingMap) {
@@ -33,6 +36,7 @@ function mapEnrollment(raw, index, bookingMap) {
     course:            raw['_grav_course_value@OData.Community.Display.V1.FormattedValue'] ?? '',
     companyId:         raw._tct_company_value ?? null,
     company:           raw['_tct_company_value@OData.Community.Display.V1.FormattedValue'] ?? null,
+    secondaryCompany:  raw.tct_secondarycompany ?? null,
     trainingDate:      toDateStr(raw.grav_time1),
     endDate:           toDateStr(raw.grav_time2),
     status:            mapStatus(raw.tct_assessmentstatus, raw['tct_assessmentstatus@OData.Community.Display.V1.FormattedValue']),
@@ -60,7 +64,10 @@ function applyPermissionFilters(records, perms) {
     : [];
 
   if (allowedCompanies.length > 0) {
-    filtered = filtered.filter(r => r.company && allowedCompanies.includes(r.company.toLowerCase()));
+    filtered = filtered.filter(r =>
+      (r.company && allowedCompanies.includes(r.company.toLowerCase())) ||
+      (r.secondaryCompany && allowedCompanies.includes(r.secondaryCompany.toLowerCase()))
+    );
   }
   if (allowedVenues.length > 0) {
     filtered = filtered.filter(r => r.venue && allowedVenues.includes(r.venue.toLowerCase()));

@@ -53,6 +53,7 @@ const PAGE_SIZE = 200;
 export default function TrainingData() {
   const [search, setSearch]     = useState('');
   const [status, setStatus]     = useState('All');
+  const [company, setCompany]   = useState('All');
   const [venue, setVenue]       = useState('All');
   const [course, setCourse]     = useState('All');
   const [dateFrom, setDateFrom] = useState('');
@@ -63,7 +64,7 @@ export default function TrainingData() {
   const [sortDir, setSortDir]   = useState('desc');
   const [page, setPage]         = useState(0);
 
-  const { records, loading, error } = useTrainingRecords();
+  const { records, allowedCompanies, loading, error } = useTrainingRecords();
   const { user } = useAuth0();
   const isGravity  = (user?.email ?? '').toLowerCase().endsWith('@gravitygh.co.za');
   const companyName = user?.name ?? null;
@@ -74,25 +75,34 @@ export default function TrainingData() {
     else { setSortKey(key); setSortDir('asc'); }
   }
 
-  const statuses = useMemo(() => {
-    const u = [...new Set(records.map(r => r.status).filter(Boolean))].sort();
-    return ['All', ...u];
-  }, [records]);
+  const statuses = ['All', 'Competent', 'NYC', 'Pending', 'Almost Expired', 'Expired'];
 
   const venues = useMemo(() => {
     const u = [...new Set(records.map(r => r.venue).filter(Boolean))].sort();
     return ['All', ...u];
   }, [records]);
 
+  const companies = useMemo(() => {
+    if (allowedCompanies && allowedCompanies.length > 0) {
+      return ['All', ...[...allowedCompanies].sort()];
+    }
+    const u = new Set();
+    records.forEach(r => {
+      if (r.company) u.add(r.company);
+      if (r.secondaryCompany) u.add(r.secondaryCompany);
+    });
+    return ['All', ...[...u].sort()];
+  }, [records, allowedCompanies]);
+
   const courses = useMemo(() => {
     const u = [...new Set(records.map(r => r.course).filter(Boolean))].sort();
     return ['All', ...u];
   }, [records]);
 
-  const activeFilterCount = [status !== 'All', venue !== 'All', course !== 'All', !!dateFrom, !!dateTo, !!search].filter(Boolean).length;
+  const activeFilterCount = [status !== 'All', company !== 'All', venue !== 'All', course !== 'All', !!dateFrom, !!dateTo, !!search].filter(Boolean).length;
 
   function clearFilters() {
-    setSearch(''); setStatus('All'); setVenue('All'); setCourse('All');
+    setSearch(''); setStatus('All'); setCompany('All'); setVenue('All'); setCourse('All');
     setDateFrom(''); setDateTo(''); setPage(0);
   }
 
@@ -101,20 +111,34 @@ export default function TrainingData() {
     setPage(0);
     const q = search.toLowerCase();
     return records.filter(r => {
-      if (status !== 'All' && r.status !== status) return false;
-      if (venue  !== 'All' && r.venue  !== venue)  return false;
+      if (status !== 'All') {
+        if (status === 'Almost Expired') {
+          if (!r.expiryDate) return false;
+          const diff = (new Date(r.expiryDate) - new Date()) / (1000 * 60 * 60 * 24);
+          if (!(diff >= 0 && diff <= 90)) return false;
+        }
+        else if (status === 'Expired') {
+          if (!r.expiryDate) return false;
+          if (new Date(r.expiryDate) >= new Date()) return false;
+        }
+        else if (r.status !== status) return false;
+      }
+      if (company !== 'All' && r.company !== company && r.secondaryCompany !== company) return false;
+      if (venue !== 'All' && r.venue !== venue) return false;
       if (course !== 'All' && r.course !== course) return false;
       if (dateFrom && r.trainingDate < dateFrom) return false;
       if (dateTo   && r.trainingDate > dateTo)   return false;
       if (q && !(
-        r._search.includes(q) ||
-        r.course.toLowerCase().includes(q) ||
+        (r._search && r._search.includes(q)) ||
+        (r.candidateName && r.candidateName.toLowerCase().includes(q)) ||
+        (r.course && r.course.toLowerCase().includes(q)) ||
         (r.company && r.company.toLowerCase().includes(q)) ||
+        (r.secondaryCompany && r.secondaryCompany.toLowerCase().includes(q)) ||
         (r.idNumber && r.idNumber.toLowerCase().includes(q))
       )) return false;
       return true;
     });
-  }, [records, search, status, venue, course, dateFrom, dateTo]);
+  }, [records, search, status, company, venue, course, dateFrom, dateTo]);
 
   // group by learner — one row per person
   const learnerRows = useMemo(() => {
@@ -125,7 +149,7 @@ export default function TrainingData() {
         const parts = r.candidateName.trim().split(/\s+/);
         map.set(key, {
           key,
-          company:    r.company ?? '—',
+          company:    r.company ? (r.secondaryCompany ? `${r.company} (${r.secondaryCompany})` : r.company) : '—',
           firstName:  parts[0] ?? '',
           lastName:   parts.slice(1).join(' ') || '—',
           idNumber:   r.idNumber || '—',
@@ -137,9 +161,10 @@ export default function TrainingData() {
       const row = map.get(key);
       if (r.trainingDate && r.trainingDate > row.latestDate) row.latestDate = r.trainingDate;
       row.courses.push({
-        course:     r.course,
-        expiryDate: r.expiryDate,
-        status:     r.status,
+        course:       r.course,
+        trainingDate: r.trainingDate,
+        expiryDate:   r.expiryDate,
+        status:       r.status,
       });
     });
     return Array.from(map.values());
@@ -196,11 +221,16 @@ export default function TrainingData() {
 
         <div className="td-filter-group">
           <label className="td-filter-label">Status</label>
-          <div className="td-pills">
-            {statuses.map(s => (
-              <button key={s} className={`filter-btn${status === s ? ' filter-btn--active' : ''}`} onClick={() => setStatus(s)}>{s}</button>
-            ))}
-          </div>
+          <select className="td-select" value={status} onChange={e => setStatus(e.target.value)}>
+            {statuses.map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+
+        <div className="td-filter-group">
+          <label className="td-filter-label">Company</label>
+          <select className="td-select" value={company} onChange={e => setCompany(e.target.value)}>
+            {companies.map(v => <option key={v}>{v}</option>)}
+          </select>
         </div>
 
         <div className="td-filter-group">
@@ -219,12 +249,12 @@ export default function TrainingData() {
 
         <div className="td-filter-group">
           <label className="td-filter-label">From</label>
-          <input className="td-date" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <input className="td-date" type="date" value={dateFrom} min="2000-01-01" max={new Date().toISOString().slice(0,10)} onChange={e => setDateFrom(e.target.value)} />
         </div>
 
         <div className="td-filter-group">
           <label className="td-filter-label">To</label>
-          <input className="td-date" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          <input className="td-date" type="date" value={dateTo} min={dateFrom || '2000-01-01'} max={new Date().toISOString().slice(0,10)} onChange={e => setDateTo(e.target.value)} />
         </div>
 
         {activeFilterCount > 0 && (
@@ -245,12 +275,13 @@ export default function TrainingData() {
                   ))}
                   <th>Course</th>
                   <th>Status</th>
+                  <th>Cert Date</th>
                   <th>Expiry Date</th>
                 </tr>
               </thead>
               <tbody>
                 {sorted.length === 0 ? (
-                  <tr><td colSpan={7} className="td-empty">No records match your filters.</td></tr>
+                  <tr><td colSpan={8} className="td-empty">No records match your filters.</td></tr>
                 ) : (
                   paginated.map(r => {
                     const courses = r.courses.length > 0 ? r.courses : [null];
@@ -278,6 +309,7 @@ export default function TrainingData() {
                         <td>{c ? (
                           <span className={`badge badge--${(c.status || '').replace(' ','-').toLowerCase()}`}>{c.status || '—'}</span>
                         ) : '—'}</td>
+                        <td>{c ? fmt(c.trainingDate) : '—'}</td>
                         <td className={c ? expiryClass(c.expiryDate) : ''}>{c ? fmt(c.expiryDate) : '—'}</td>
                       </tr>
                     ));

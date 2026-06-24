@@ -33,7 +33,7 @@ async function dvGet(path) {
     Accept:             'application/json',
     'OData-MaxVersion': '4.0',
     'OData-Version':    '4.0',
-    Prefer:             'odata.include-annotations="OData.Community.Display.V1.FormattedValue"',
+    Prefer:             'odata.include-annotations="OData.Community.Display.V1.FormattedValue",odata.maxpagesize=5000',
   };
 
   let url = path.startsWith('http') ? path : `${process.env.DATAVERSE_URL}/${path}`;
@@ -97,6 +97,7 @@ const ENROLL_FIELDS = [
   '_grav_course_value',
   '_tct_company_value',
   '_tct_booking_value',
+  'tct_secondarycompany',
 ].join(',');
 
 async function getEnrollments() {
@@ -104,7 +105,7 @@ async function getEnrollments() {
 }
 
 async function getBookings() {
-  return dvGet(`grav_bookings?$top=5000&$select=grav_bookingid,tct_venueselect`);
+  return dvGet(`grav_bookings?$select=grav_bookingid,tct_venueselect`);
 }
 
 module.exports = { getPortalUser, getEffectivePermissions, getEnrollments, getBookings };

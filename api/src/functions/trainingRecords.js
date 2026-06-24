@@ -46,6 +46,7 @@ app.http('trainingRecords', {
       let records = enrollData.map((r, i) => mapEnrollment(r, i, bookingMap));
 
       // 5. Apply permission filters (admins see everything)
+      let allowedCompanies = [];
       if (!isAdmin) {
         const portalUser = await getPortalUser(email);
 
@@ -53,8 +54,10 @@ app.http('trainingRecords', {
           const companyId = portalUser._crc41_portalcompany_value;
           const perms     = await getEffectivePermissions(portalUser.crc41_portaluserid, companyId);
           records         = applyPermissionFilters(records, perms);
+          allowedCompanies = perms?.crc41_companyfilter
+            ? perms.crc41_companyfilter.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
         } else {
-          // Email not in portal users table — return nothing
           records = [];
         }
       }
@@ -62,7 +65,7 @@ app.http('trainingRecords', {
       return {
         status:  200,
         headers: { ...cors, 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ records }),
+        body:    JSON.stringify({ records, allowedCompanies }),
       };
 
     } catch (err) {

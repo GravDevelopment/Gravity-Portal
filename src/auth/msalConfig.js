@@ -4,7 +4,9 @@ export const msalConfig = {
   auth: {
     clientId:    '9477b4a3-fa32-4e48-88db-fcbdf371a5cb',
     authority:   'https://login.microsoftonline.com/385f3470-aae2-44d0-8cff-1da9ffd31951',
-    redirectUri: window.location.origin,
+    redirectUri: window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://gravdevelopment.github.io/Gravity-Portal',
   },
   cache: {
     cacheLocation:        'sessionStorage',

@@ -7,14 +7,25 @@ import LoadingScreen from '../components/LoadingScreen';
 import './Home.css';
 
 const STATUS_COLOURS = {
-  Completed: '#16a34a',
+  Competent: '#16a34a',
+  Completed: '#0ea5e9',
   Pending:   '#6b7280',
-  Failed:    '#d2232a',
+  NYC:       '#d2232a',
 };
 
 function fmtDate(d) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-ZA');
+}
+
+function clampDate(v) {
+  if (!v) return '';
+  const min = '2000-01-01';
+  const max = new Date().toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return '';
+  if (v < min) return min;
+  if (v > max) return max;
+  return v;
 }
 
 function StatCard({ label, value, sub, accent, active, onClick }) {
@@ -54,37 +65,27 @@ function DonutChart({ data, total }) {
   );
 }
 
-function StatusPieChart({ records }) {
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo,   setDateTo]   = useState('');
+function StatusPieChart({ records, dateFrom, dateTo, setDateFrom, setDateTo }) {
   const hasRange = dateFrom || dateTo;
-  const filtered = useMemo(() => {
-    if (!dateFrom && !dateTo) return records;
-    return records.filter(r => {
-      if (dateFrom && r.trainingDate < dateFrom) return false;
-      if (dateTo   && r.trainingDate > dateTo)   return false;
-      return true;
-    });
-  }, [records, dateFrom, dateTo]);
   const pieData = useMemo(() => {
     const counts = {};
-    filtered.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+    records.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
+  }, [records]);
   return (
     <div className="pie-card">
       <div className="pie-card-header">
         <h2>Enrolments by Status</h2>
         <div className="pie-date-range">
-          <input type="date" className="pie-date-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} title="From date" />
+          <input type="date" className="pie-date-input" value={dateFrom} min="2000-01-01" max={new Date().toISOString().slice(0,10)} onChange={e => setDateFrom(clampDate(e.target.value))} onBlur={e => setDateFrom(clampDate(e.target.value))} title="From date" />
           <span className="pie-date-sep">—</span>
-          <input type="date" className="pie-date-input" value={dateTo} onChange={e => setDateTo(e.target.value)} title="To date" />
+          <input type="date" className="pie-date-input" value={dateTo} min={dateFrom || '2000-01-01'} max={new Date().toISOString().slice(0,10)} onChange={e => setDateTo(clampDate(e.target.value))} onBlur={e => setDateTo(clampDate(e.target.value))} title="To date" />
           {hasRange && <button className="pie-clear" onClick={() => { setDateFrom(''); setDateTo(''); }}>✕</button>}
         </div>
       </div>
       {pieData.length === 0 ? <p className="pie-empty">No records in this range.</p> : (
         <>
-          <DonutChart data={pieData} total={filtered.length} />
+          <DonutChart data={pieData} total={records.length} />
           <div className="donut-legend">
             {pieData.map(d => (
               <span key={d.name} className="donut-legend-item">
@@ -95,7 +96,7 @@ function StatusPieChart({ records }) {
           </div>
         </>
       )}
-      <p className="pie-total">{filtered.length} total{hasRange ? ' in range' : ''}</p>
+      <p className="pie-total">{records.length} total{hasRange ? ' in range' : ''}</p>
     </div>
   );
 }
@@ -147,11 +148,11 @@ function VenueBarChart({ records, selectedVenue, onVenueClick }) {
 }
 
 const FILTERS = {
-  all:        { label: 'Recent Training',         cols: ['candidate','course','venue','date','status'] },
-  completed:  { label: 'Competent Learners',       cols: ['candidate','course','venue','date'] },
-  failed:     { label: 'Not Yet Competent',        cols: ['candidate','course','venue','date'] },
-  pending:    { label: 'Pending Learners',         cols: ['candidate','course','venue','date'] },
-  revalidation: { label: 'Revalidation Due',       cols: ['candidate','course','expiry'] },
+  all:        { label: 'Recent Training',         cols: ['venue','candidate','course','date','status'] },
+  completed:  { label: 'Competent Learners',       cols: ['venue','candidate','course','date'] },
+  failed:     { label: 'Not Yet Competent',        cols: ['venue','candidate','course','date'] },
+  pending:    { label: 'Pending Learners',         cols: ['venue','candidate','course','date'] },
+  revalidation: { label: 'Revalidation Due',       cols: ['candidate','course','date','expiry'] },
 };
 
 const COL_HEADERS = {
@@ -162,17 +163,38 @@ const COL_HEADERS = {
 export default function Home() {
   const { user } = useAuth0();
   const userName = user?.name ?? user?.email ?? '';
-  const { records, loading } = useRecords();
+  const { records: allRecords, loading } = useRecords();
   const [activeFilter, setActiveFilter] = useState('all');
   const [venueFilter, setVenueFilter]   = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo,   setDateTo]   = useState('');
+
+  const records = useMemo(() => {
+    const validFrom = /^\d{4}-\d{2}-\d{2}$/.test(dateFrom) && dateFrom >= '1900-01-01' ? dateFrom : '';
+    const validTo   = /^\d{4}-\d{2}-\d{2}$/.test(dateTo)   && dateTo   >= '1900-01-01' ? dateTo   : '';
+    if (!validFrom && !validTo && !venueFilter) return allRecords;
+    return allRecords.filter(r => {
+      if (validFrom && (!r.trainingDate || r.trainingDate < validFrom)) return false;
+      if (validTo   && (!r.trainingDate || r.trainingDate > validTo))   return false;
+      if (venueFilter && r.venue !== venueFilter) return false;
+      return true;
+    });
+  }, [allRecords, dateFrom, dateTo, venueFilter]);
   const { tooltip, show, hide } = useRowTooltip();
   const [rebookRecord, setRebookRecord] = useState(null);
 
   const uniqueLearners = useMemo(() => new Set(records.map(r => r.idNumber || r.candidateName)).size, [records]);
-  const completed      = useMemo(() => records.filter(r => r.status === 'Completed').length, [records]);
-  const failed         = useMemo(() => records.filter(r => r.status === 'Failed').length, [records]);
+  const completed      = useMemo(() => records.filter(r => r.status === 'Competent').length, [records]);
+  const failed         = useMemo(() => records.filter(r => r.status === 'NYC').length, [records]);
   const pending        = useMemo(() => records.filter(r => r.status === 'Pending').length, [records]);
   const venues         = useMemo(() => [...new Set(records.map(r => r.venue).filter(Boolean))].length, [records]);
+  const completedNoExpiry = useMemo(() => {
+    const list = records.filter(r => r.status === 'Competent' && !r.expiryDate);
+    if (list.length) console.warn(`[Sanity] ${list.length} Completed records have NO expiry date`, list.slice(0, 5));
+    return list.length;
+  }, [records]);
+  // eslint-disable-next-line no-unused-vars
+  const _sanity = completedNoExpiry;
   const expiringSoon   = useMemo(() => records.filter(r => {
     if (!r.expiryDate) return false;
     const diff = (new Date(r.expiryDate) - new Date()) / (1000 * 60 * 60 * 24);
@@ -182,10 +204,10 @@ export default function Home() {
   const tableRecords = useMemo(() => {
     switch (activeFilter) {
       case 'completed':
-        return [...records].filter(r => r.status === 'Completed')
+        return [...records].filter(r => r.status === 'Competent')
           .sort((a, b) => new Date(b.trainingDate) - new Date(a.trainingDate)).slice(0, 50);
       case 'failed':
-        return [...records].filter(r => r.status === 'Failed')
+        return [...records].filter(r => r.status === 'NYC')
           .sort((a, b) => new Date(b.trainingDate) - new Date(a.trainingDate)).slice(0, 50);
       case 'pending':
         return [...records].filter(r => r.status === 'Pending')
@@ -209,8 +231,8 @@ export default function Home() {
     // Apply venue on top of the status-filtered base (re-derive without slice limit)
     let base = [...records];
     switch (activeFilter) {
-      case 'completed':   base = base.filter(r => r.status === 'Completed'); break;
-      case 'failed':      base = base.filter(r => r.status === 'Failed'); break;
+      case 'completed':   base = base.filter(r => r.status === 'Competent'); break;
+      case 'failed':      base = base.filter(r => r.status === 'NYC'); break;
       case 'pending':     base = base.filter(r => r.status === 'Pending'); break;
       case 'revalidation': base = base.filter(r => {
         if (!r.expiryDate) return false;
@@ -259,7 +281,7 @@ export default function Home() {
 
       <div className="home-body">
         <div className="home-left">
-          <StatusPieChart records={records} />
+          <StatusPieChart records={records} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} />
           <VenueBarChart records={records} selectedVenue={venueFilter} onVenueClick={setVenueFilter} />
         </div>
 
@@ -304,18 +326,17 @@ export default function Home() {
                           onMouseEnter={e => show(e, tooltipLines)}
                           onMouseLeave={hide}
                         >
-                          {cols.includes('candidate') && i === 0 && (
-                            <td rowSpan={group.rows.length} className="td-group-cell">{r.candidateName}</td>
-                          )}
-                          {cols.includes('course')  && <td>{r.course}</td>}
-                          {cols.includes('venue')   && <td>{r.venue ?? '—'}</td>}
-                          {cols.includes('date')    && <td>{fmtDate(r.trainingDate)}</td>}
-                          {cols.includes('status')  && (
-                            <td><span className={`badge badge--${r.status.replace(' ','-').toLowerCase()}`}>{r.status}</span></td>
-                          )}
-                          {cols.includes('expiry')  && (
-                            <td className={expiryClass(r.expiryDate)}>{fmtDate(r.expiryDate)}</td>
-                          )}
+                          {cols.map(col => {
+                            if (col === 'candidate') return i === 0
+                              ? <td key={col} rowSpan={group.rows.length} className="td-group-cell">{r.candidateName}</td>
+                              : null;
+                            if (col === 'course') return <td key={col}>{r.course}</td>;
+                            if (col === 'venue')  return <td key={col}>{r.venue ?? '—'}</td>;
+                            if (col === 'date')   return <td key={col}>{fmtDate(r.trainingDate)}</td>;
+                            if (col === 'status') return <td key={col}><span className={`badge badge--${r.status.replace(' ','-').toLowerCase()}`}>{r.status}</span></td>;
+                            if (col === 'expiry') return <td key={col} className={expiryClass(r.expiryDate)}>{fmtDate(r.expiryDate)}</td>;
+                            return null;
+                          })}
                         </tr>
                       );
                     })

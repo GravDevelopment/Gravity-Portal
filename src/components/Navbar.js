@@ -15,21 +15,17 @@ export default function Navbar() {
 
   function signIn() {
     loginWithRedirect({
-      authorizationParams: {
-        redirect_uri: window.location.origin,
-        connection: 'gravity-entra',
-      },
+      authorizationParams: { connection: 'gravity-entra' },
     }).catch(e => console.error('[Auth0] login error:', e));
   }
   function signInClient() {
-    loginWithRedirect({
-      authorizationParams: {
-        redirect_uri: window.location.origin,
-      },
-    }).catch(e => console.error('[Auth0] login error:', e));
+    loginWithRedirect().catch(e => console.error('[Auth0] login error:', e));
   }
   function signOut() {
-    logout({ logoutParams: { returnTo: window.location.origin } });
+    const returnTo = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://gravdevelopment.github.io/Gravity-Portal';
+    logout({ logoutParams: { returnTo } });
   }
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen]         = useState(false);

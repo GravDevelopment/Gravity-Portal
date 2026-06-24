@@ -191,9 +191,13 @@
 .recent-table td {
   padding: 0.6rem 0.75rem;
   border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   color: var(--text);
   white-space: nowrap;
 }
+.recent-table td:last-child,
+.recent-table th:last-child { border-right: none; }
+.recent-table th { border-right: 1px solid var(--border); }
 
 .recent-table tbody tr:last-child td { border-bottom: none; }
 .recent-table tbody tr:hover          { background: var(--hover-bg); }

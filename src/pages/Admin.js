@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
+import { dataverseScopes } from '../auth/msalConfig';
 import {
   usePortalCompanies,
   usePortalUsers,
@@ -43,12 +44,13 @@ function PermissionForm({ perm, islevel, companyId, userId, onSaved }) {
   const { instance, accounts } = useMsal();
   const { companies: allCompanies, loading: companiesLoading } = useTrainingCompanies();
 
+  const [companySearch,  setCompanySearch]  = useState('');
   const [canHome,        setCanHome]        = useState(perm?.crc41_canviewhome         ?? true);
   const [canTraining,    setCanTraining]    = useState(perm?.crc41_canviewtrainingdata ?? true);
   const [venueFilter,    setVenueFilter]    = useState(perm?.crc41_venuefilter         ?? '');
   const [companyFilter,  setCompanyFilter]  = useState(() => {
     const s = perm?.crc41_companyfilter ?? '';
-    return s ? s.split(',').map(x => x.trim()).filter(Boolean) : [];
+    return s ? [...new Set(s.split(',').map(x => x.trim()).filter(Boolean))] : [];
   });
   const [statusSel,      setStatusSel]      = useState(() => {
     const s = perm?.crc41_statusfilter ?? '';
@@ -64,7 +66,7 @@ function PermissionForm({ perm, islevel, companyId, userId, onSaved }) {
     setCanTraining(perm?.crc41_canviewtrainingdata ?? true);
     setVenueFilter(perm?.crc41_venuefilter         ?? '');
     const cf = perm?.crc41_companyfilter ?? '';
-    setCompanyFilter(cf ? cf.split(',').map(x => x.trim()).filter(Boolean) : []);
+    setCompanyFilter(cf ? [...new Set(cf.split(',').map(x => x.trim()).filter(Boolean))] : []);
     const s = perm?.crc41_statusfilter ?? '';
     setStatusSel(s ? s.split(',').map(x => x.trim()).filter(Boolean) : []);
   }, [perm]);
@@ -88,15 +90,15 @@ function PermissionForm({ perm, islevel, companyId, userId, onSaved }) {
         crc41_portalpermissionid:  perm?.crc41_portalpermissionid,
         companyId,
         userId,
-        crc41_canviewhome:         canHome,
-        crc41_canviewtrainingdata: canTraining,
+        crc41_canviewhome:         String(canHome),
+        crc41_canviewtrainingdata: String(canTraining),
         crc41_venuefilter:         venueFilter.trim(),
-        crc41_companyfilter:       companyFilter.join(','),
+        crc41_companyfilter:       [...new Set(companyFilter)].join(','),
         crc41_statusfilter:        statusSel.join(','),
         crc41_islevel:             islevel,
       });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => setSaved(false), 5000);
       onSaved?.();
     } catch (err) {
       setError(err.message);
@@ -120,22 +122,52 @@ function PermissionForm({ perm, islevel, companyId, userId, onSaved }) {
           <p className="adm-muted">No companies found.</p>
         ) : (
           <>
-            <div className="adm-pills adm-pills--scroll">
-              {allCompanies.map(c => (
+            <div className="adm-pills" style={{ marginBottom: '8px' }}>
+              {companyFilter.length === 0 && (
+                <span className="adm-muted" style={{ fontSize: '12px' }}>No companies selected — users see all companies' data.</span>
+              )}
+              {companyFilter.map(name => (
                 <button
-                  key={c.accountid}
+                  key={name}
                   type="button"
-                  className={`filter-btn${companyFilter.includes(c.name) ? ' filter-btn--active' : ''}`}
-                  onClick={() => toggleCompany(c.name)}
+                  className="filter-btn filter-btn--active"
+                  onClick={() => toggleCompany(name)}
+                  title="Click to remove"
                 >
-                  {c.name}
+                  {name} ×
                 </button>
               ))}
             </div>
-            {companyFilter.length > 0 && (
-              <p className="adm-muted" style={{ marginTop: '6px', fontSize: '12px' }}>
-                {companyFilter.length} selected — users see only these companies' data
-              </p>
+            <input
+              type="search"
+              className="adm-input"
+              placeholder="Search to add companies…"
+              value={companySearch}
+              onChange={e => setCompanySearch(e.target.value)}
+              style={{ marginBottom: '8px' }}
+            />
+            {companySearch && (
+              <div className="adm-pills adm-pills--scroll">
+                {allCompanies
+                  .filter(c => !companyFilter.includes(c.name) && c.name.toLowerCase().includes(companySearch.toLowerCase()))
+                  .sort((a, b) => {
+                    const q = companySearch.toLowerCase();
+                    const aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+                    const bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+                    return aStarts - bStarts || a.name.localeCompare(b.name);
+                  })
+                  .slice(0, 50)
+                  .map(c => (
+                    <button
+                      key={c.accountid}
+                      type="button"
+                      className="filter-btn"
+                      onClick={() => { toggleCompany(c.name); setCompanySearch(''); }}
+                    >
+                      + {c.name}
+                    </button>
+                  ))}
+              </div>
             )}
           </>
         )}
@@ -439,7 +471,7 @@ function CompanyDetail({ company, onSaved, onDeleted }) {
         crc41_isactive:        active,
       });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => setSaved(false), 5000);
       onSaved?.();
     } catch (err) {
       setError(err.message);
@@ -594,6 +626,24 @@ export default function Admin() {
   const detailCompany = addingNew
     ? { crc41_name: '', crc41_description: '', crc41_isactive: true }
     : selected;
+
+  if (accounts.length === 0) {
+    return (
+      <main className="page page--full adm-page">
+        <div style={{ maxWidth: 480, margin: '4rem auto', padding: '2rem', textAlign: 'center', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12 }}>
+          <h2 style={{ marginTop: 0 }}>Connect to Dataverse</h2>
+          <p style={{ color: 'var(--text-muted)' }}>To manage companies and permissions, sign in with your Microsoft work account.</p>
+          <button
+            className="adm-btn adm-btn--primary"
+            onClick={() => instance.loginRedirect({ scopes: dataverseScopes }).catch(e => setOpError(e.message))}
+          >
+            Sign in with Microsoft
+          </button>
+          {opError && <p style={{ color: '#d2232a', marginTop: 12 }}>{opError}</p>}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="page page--full adm-page">

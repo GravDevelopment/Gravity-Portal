@@ -6,13 +6,11 @@ export default function LandingPage() {
   const { loginWithRedirect } = useAuth0();
 
   function signInClient() {
-    loginWithRedirect({ authorizationParams: { redirect_uri: window.location.origin } });
+    loginWithRedirect();
   }
 
   function signInStaff() {
-    loginWithRedirect({
-      authorizationParams: { redirect_uri: window.location.origin, connection: 'gravity-entra' },
-    });
+    loginWithRedirect({ authorizationParams: { connection: 'gravity-entra' } });
   }
 
   return (

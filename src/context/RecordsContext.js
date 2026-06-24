@@ -7,6 +7,7 @@ const RecordsContext = createContext({ records: [], loading: false, error: null 
 export function RecordsProvider({ children }) {
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
   const [records, setRecords] = useState([]);
+  const [allowedCompanies, setAllowedCompanies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,7 +25,13 @@ export function RecordsProvider({ children }) {
         });
         if (!res.ok) throw new Error(`API error ${res.status}`);
         const json = await res.json();
-        if (!cancelled) setRecords(json.records ?? []);
+        if (!cancelled) {
+          const recs = json.records ?? [];
+          setRecords(recs);
+          setAllowedCompanies(json.allowedCompanies ?? []);
+          const noExp = recs.filter(r => r.status === 'Competent' && !r.expiryDate);
+          console.warn(`[Sanity] Competent without expiry: ${noExp.length} of ${recs.filter(r => r.status === 'Competent').length} competent records`, noExp.slice(0, 10));
+        }
       } catch (err) {
         if (!cancelled) setError(err.message);
       } finally {
@@ -36,7 +43,7 @@ export function RecordsProvider({ children }) {
   }, [isAuthenticated, getAccessTokenSilently]);
 
   return (
-    <RecordsContext.Provider value={{ records, loading, error }}>
+    <RecordsContext.Provider value={{ records, allowedCompanies, loading, error }}>
       {children}
     </RecordsContext.Provider>
   );
