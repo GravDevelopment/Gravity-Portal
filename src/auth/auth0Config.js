@@ -2,7 +2,7 @@ export const auth0Config = {
   domain:      'dev-uzjcc3fqzuflvumc.us.auth0.com',
   clientId:    'uQ993w2h0v1aiXJ2k63dU6Umu9ikbMYx',
   authorizationParams: {
-    redirect_uri: window.location.origin,
+    redirect_uri: process.env.REACT_APP_AUTH0_REDIRECT_URI || window.location.origin,
     audience:     'https://gravityportal-api',
   },
 };

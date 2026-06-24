@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useApiTrainingRecords } from '../auth/useApiTrainingRecords';
+import { useRecords } from '../context/RecordsContext';
 import { useRowTooltip, RowTooltip } from '../components/RowTooltip';
 import RebookModal from '../components/RebookModal';
 import LoadingScreen from '../components/LoadingScreen';
@@ -162,7 +162,7 @@ const COL_HEADERS = {
 export default function Home() {
   const { user } = useAuth0();
   const userName = user?.name ?? user?.email ?? '';
-  const { records, loading } = useApiTrainingRecords();
+  const { records, loading } = useRecords();
   const [activeFilter, setActiveFilter] = useState('all');
   const [venueFilter, setVenueFilter]   = useState(null);
   const { tooltip, show, hide } = useRowTooltip();

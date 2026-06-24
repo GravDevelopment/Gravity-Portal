@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useApiTrainingRecords as useTrainingRecords } from '../auth/useApiTrainingRecords';
+import { useRecords as useTrainingRecords } from '../context/RecordsContext';
 import TrainingChart, { GROUP_OPTIONS } from '../components/TrainingChart';
 import { useRowTooltip, RowTooltip } from '../components/RowTooltip';
 import LoadingScreen from '../components/LoadingScreen';
