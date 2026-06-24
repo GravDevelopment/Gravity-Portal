@@ -1,0 +1,286 @@
+/* ─────────────────────────────────────────
+   NAVBAR  (mobile-first)
+───────────────────────────────────────── */
+.navbar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 1rem;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  transform: translateY(0);
+  transition: transform 0.25s ease;
+}
+
+.navbar--hidden { transform: translateY(-100%); }
+
+/* Brand / logo */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.navbar-logo {
+  height: 30px;
+  max-width: 120px;   /* stop wide logos from pushing everything off */
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+/* Desktop links — hidden on mobile, shown ≥640px */
+.navbar-links {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.25rem;
+}
+
+.navbar-links a {
+  display: block;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+
+.navbar-links a:hover  { color: var(--text); background: var(--hover-bg); }
+.navbar-links a.active { color: var(--accent); background: var(--accent-subtle); }
+
+/* Right side always */
+.navbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* User avatar — shown on desktop, hidden on mobile */
+.navbar-user { position: relative; display: none; }
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--hover-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.user-avatar:hover { border-color: var(--accent); color: var(--accent); }
+.user-avatar-img   { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; display: block; }
+
+/* Dropdown */
+.user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 210px;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  z-index: 300;
+  animation: dropIn 0.15s ease;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.25rem;
+}
+
+.dropdown-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Hamburger — shown on mobile */
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 36px; height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.hamburger span {
+  display: block;
+  height: 2px;
+  background: var(--text-muted);
+  border-radius: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.hamburger--open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger--open span:nth-child(2) { opacity: 0; }
+.hamburger--open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile drawer */
+.mobile-drawer {
+  position: fixed;
+  top: 56px;
+  left: 0; right: 0;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem 1.25rem;
+  z-index: 190;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-drawer a {
+  display: block;
+  padding: 0.8rem 0.85rem;
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mobile-drawer a:hover  { background: var(--hover-bg); color: var(--text); }
+.mobile-drawer a.active { background: var(--accent-subtle); color: var(--accent); }
+
+.drawer-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.5rem 0;
+}
+
+.drawer-theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.85rem;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-switch input { display: none; }
+
+.toggle-track {
+  position: relative;
+  width: 36px; height: 20px;
+  background: var(--border);
+  border-radius: 999px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-switch input:checked + .toggle-track { background: var(--accent); }
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-track .toggle-thumb { transform: translateX(16px); }
+
+.toggle-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  min-width: 28px;
+}
+
+/* ── Auth ── */
+.dropdown-user-info {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.dropdown-user-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.auth-btn--in {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.auth-btn--in:hover  { opacity: 0.88; }
+
+.auth-btn--out {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.auth-btn--out:hover { background: var(--hover-bg); color: var(--text); }
+
+/* ─────────────────────────────────────────
+   DESKTOP  ≥640px
+───────────────────────────────────────── */
+@media (min-width: 640px) {
+  .navbar         { height: 60px; padding: 0 1.5rem; }
+  .navbar-logo    { height: 34px; max-width: none; }
+  .navbar-links   { display: flex; flex: 1; margin-left: 1.5rem; }
+  .navbar-user    { display: block; }
+  .hamburger      { display: none; }
+}

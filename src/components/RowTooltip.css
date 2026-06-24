@@ -1,0 +1,46 @@
+.row-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: var(--dropdown-bg, #1e1e2e);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.9rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.32);
+  pointer-events: none;
+  min-width: 200px;
+  max-width: 300px;
+  animation: rtIn 0.12s ease;
+}
+
+@keyframes rtIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.row-tooltip-line {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.18rem 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.row-tooltip-line + .row-tooltip-line {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.row-tooltip-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.row-tooltip-value {
+  color: var(--text);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}

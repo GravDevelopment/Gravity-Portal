@@ -1,0 +1,22 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* prevent horizontal scroll on mobile */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button { font-family: inherit; background: none; border: none; padding: 0; }
+
+/* ── Styled scrollbars (Webkit + Firefox) ── */
+::-webkit-scrollbar              { width: 6px; height: 6px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: rgba(120,120,140,0.35); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover  { background: rgba(120,120,140,0.60); }
+::-webkit-scrollbar-corner       { background: transparent; }
+
+* { scrollbar-width: thin; scrollbar-color: rgba(120,120,140,0.35) transparent; }
