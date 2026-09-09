@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/Gravity-Portal/static/css/main.bb13a94c.css",
-    "main.js": "/Gravity-Portal/static/js/main.40a146e7.js",
+    "main.js": "/Gravity-Portal/static/js/main.5c36571e.js",
     "static/js/453.f0c6594e.chunk.js": "/Gravity-Portal/static/js/453.f0c6594e.chunk.js",
     "index.html": "/Gravity-Portal/index.html",
     "main.bb13a94c.css.map": "/Gravity-Portal/static/css/main.bb13a94c.css.map",
-    "main.40a146e7.js.map": "/Gravity-Portal/static/js/main.40a146e7.js.map",
+    "main.5c36571e.js.map": "/Gravity-Portal/static/js/main.5c36571e.js.map",
     "453.f0c6594e.chunk.js.map": "/Gravity-Portal/static/js/453.f0c6594e.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.bb13a94c.css",
-    "static/js/main.40a146e7.js"
+    "static/js/main.5c36571e.js"
   ]
 }
